@@ -2,21 +2,21 @@
 
 import { useEffect } from "react";
 
-interface ViewportHeightState {
-  hasFocusedEditable: boolean;
-  innerHeight: number;
-  viewportHeight: number;
-  viewportScale: number;
-}
-
 export function shouldUseVisualViewportHeight({
   hasFocusedEditable,
-  innerHeight,
-  viewportHeight,
   viewportScale,
-}: ViewportHeightState): boolean {
+}: {
+  hasFocusedEditable: boolean;
+  viewportScale: number;
+}): boolean {
+  // Some mobile browsers shrink the layout viewport together with the visual
+  // viewport when the keyboard opens (innerHeight already == viewport.height),
+  // which made the old `innerHeight - viewportHeight > 1` gate miss the
+  // keyboard entirely. Simply tracking the visual viewport while an editor is
+  // focused is safe: when no keyboard is open the values are identical to the
+  // 100dvh fallback, so setting the CSS var is a no-op.
   const isUnscaled = Math.abs(viewportScale - 1) < 0.01;
-  return hasFocusedEditable && isUnscaled && innerHeight - viewportHeight > 1;
+  return hasFocusedEditable && isUnscaled;
 }
 
 function hasFocusedEditableElement(): boolean {
@@ -46,8 +46,6 @@ export function useViewportHeight(): void {
       frameId = null;
       const keyboardOpen = shouldUseVisualViewportHeight({
         hasFocusedEditable: hasFocusedEditableElement(),
-        innerHeight: window.innerHeight,
-        viewportHeight: viewport.height,
         viewportScale: viewport.scale,
       });
       if (keyboardOpen) {
