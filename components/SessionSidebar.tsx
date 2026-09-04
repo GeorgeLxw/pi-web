@@ -486,6 +486,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     if (typeof nav.getBattery === "function") {
       nav.getBattery()
         .then((api) => {
+          if (!api) return;
           battery = api;
           api.addEventListener?.("levelchange", update);
           api.addEventListener?.("chargingchange", update);
