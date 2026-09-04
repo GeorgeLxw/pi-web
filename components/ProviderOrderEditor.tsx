@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties, type DragEvent } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import {
   arrangeProviders,
+  defaultProviderOrder,
   getProviderOrder,
   notifyProviderOrderChanged,
   reorderList,
@@ -22,8 +23,12 @@ interface ProviderOrderEditorProps {
  */
 export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
   const { t } = useI18n();
+  // Baseline = alphabetical, the same default the chat dropdown uses, so the
+  // editor never shows an order the dropdown won't honor. Drags persist an
+  // explicit order on top of it.
+  const defaultOrder = defaultProviderOrder(providers);
   const [order, setOrder] = useState<string[]>(() =>
-    arrangeProviders(providers, getProviderOrder()),
+    arrangeProviders(defaultOrder, getProviderOrder()),
   );
   const [draggingProvider, setDraggingProvider] = useState<string | null>(null);
   const [overProvider, setOverProvider] = useState<string | null>(null);
@@ -31,7 +36,7 @@ export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
   useEffect(() => {
     // Config edits / auth changes can add or remove providers: re-arrange the
     // default list while keeping whatever order the user already chose.
-    setOrder(arrangeProviders(providers, getProviderOrder()));
+    setOrder(arrangeProviders(defaultProviderOrder(providers), getProviderOrder()));
   }, [providers]);
 
   const commitOrder = (next: string[]) => {
@@ -41,7 +46,7 @@ export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
   };
 
   const resetOrder = () => {
-    setOrder(arrangeProviders(providers, []));
+    setOrder(arrangeProviders(defaultProviderOrder(providers), []));
     setProviderOrder([]);
     notifyProviderOrderChanged();
   };

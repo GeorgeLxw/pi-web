@@ -157,7 +157,12 @@ export function ModelSelector({
   }
 
   const noResults = pinnedOptions.length === 0 && modelsByProvider.length === 0;
-  const visibleGroups = orderProviderGroups(modelsByProvider, providerOrder);
+  // Default group order is alphabetical by provider (matches the Settings
+  // editor's baseline); an explicit user order overrides it afterwards.
+  const defaultOrderedGroups = [...modelsByProvider].sort((a, b) =>
+    MODEL_OPTION_COLLATOR.compare(a.provider, b.provider),
+  );
+  const visibleGroups = orderProviderGroups(defaultOrderedGroups, providerOrder);
 
   // FLIP: animate rows sliding to their new slots when pin/unpin reorders the
   // open list. Positions are measured before and after the state commit.

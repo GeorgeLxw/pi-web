@@ -77,6 +77,16 @@ export function reorderList<T>(list: readonly T[], from: number, to: number): T[
   return next;
 }
 
+const PROVIDER_ORDER_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+/** Canonical default order: alphabetical by provider key. */
+export function defaultProviderOrder(providers: readonly string[]): string[] {
+  return [...providers].sort((a, b) => PROVIDER_ORDER_COLLATOR.compare(a, b));
+}
+
 /**
  * Arranges `all` so every provider mentioned in `preferredOrder` (that still
  * exists) comes first in that order, followed by the rest in their original

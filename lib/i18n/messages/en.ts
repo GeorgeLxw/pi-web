@@ -388,7 +388,7 @@ export const enLocale: LocalePlugin = {
     "i18n.addProvider": "Add provider",
     "i18n.selectProviderModel": "Select a provider or model",
     "i18n.providerGroupOrder": "Chat group order",
-    "i18n.providerGroupOrderDescription": "Drag to set the order of provider groups in the chat model picker. Providers you don't order keep their default position at the end.",
+    "i18n.providerGroupOrderDescription": "Defaults to alphabetical provider order; drag to customize — the chat model picker shows the same order.",
     "i18n.providerGroupOrderReset": "Reset to default",
     "i18n.dragToReorder": "Drag to reorder",
     "i18n.visibleInPrompt": "Visible in model prompt — click to disable",
