@@ -465,6 +465,40 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     saveUnreadSessionIds(unreadSessionIds);
   }, [unreadSessionIds]);
 
+  // Low-battery saver: throttle the running-session poll cadence (2x) while
+  // the battery is <=20% and not charging. Kept in a ref so schedule() reads
+  // the latest value without restarting the polling effect.
+  const batterySaverRef = useRef(false);
+  useEffect(() => {
+    let battery: {
+      level?: number;
+      charging?: boolean;
+      addEventListener?: (type: string, handler: () => void) => void;
+      removeEventListener?: (type: string, handler: () => void) => void;
+    } | null = null;
+    const update = () => {
+      batterySaverRef.current = Boolean(
+        battery && typeof battery.level === "number"
+        && battery.level <= 0.2 && battery.charging === false,
+      );
+    };
+    const nav = navigator as (Navigator & { getBattery?: () => Promise<typeof battery> });
+    if (typeof nav.getBattery === "function") {
+      nav.getBattery()
+        .then((api) => {
+          battery = api;
+          api.addEventListener?.("levelchange", update);
+          api.addEventListener?.("chargingchange", update);
+          update();
+        })
+        .catch(() => { /* battery API unavailable */ });
+    }
+    return () => {
+      battery?.removeEventListener?.("levelchange", update);
+      battery?.removeEventListener?.("chargingchange", update);
+    };
+  }, []);
+
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -478,7 +512,10 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
     const schedule = () => {
       clearTimer();
       if (stopped || document.visibilityState !== "visible") return;
-      timer = setTimeout(() => void poll(), RUNNING_SESSIONS_POLL_MS);
+      const delay = batterySaverRef.current
+        ? RUNNING_SESSIONS_POLL_MS * 2
+        : RUNNING_SESSIONS_POLL_MS;
+      timer = setTimeout(() => void poll(), delay);
     };
 
     const poll = async () => {

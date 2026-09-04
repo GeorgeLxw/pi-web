@@ -1149,3 +1149,28 @@
     }
   }
 }
+
+/* Mobile: config/settings surfaces slide up from the bottom of the screen */
+@media (max-width: 640px) {
+  @keyframes pi-sheet-in {
+    from {
+      opacity: 0.5;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .settings-dialog-backdrop,
+  .config-panel-root.is-modal {
+    align-items: flex-end;
+  }
+
+  .settings-dialog-surface,
+  .config-panel-root.is-modal > .config-panel-surface {
+    border-radius: 14px 14px 0 0;
+    animation: pi-sheet-in 200ms ease;
+  }
+}
