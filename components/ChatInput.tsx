@@ -1906,6 +1906,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             );
           })()}
           <div
+            className="chat-input-aura"
             style={{
               minWidth: 0,
               display: "flex",

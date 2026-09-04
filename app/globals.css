@@ -1421,3 +1421,62 @@ span.token.table {
     font-size: 16px !important;
   }
 }
+
+/* ── Chat input flowing-light ring ────────────────────────────────────────────
+   Decorative conic-gradient border that flows while the composer is hovered or
+   focused; at rest it shows a faint static arc. Pure decoration — the original
+   state-colored border and semantics are untouched. */
+
+@property --flow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.chat-input-aura {
+  position: relative;
+}
+
+.chat-input-aura::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  padding: 2px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--flow-angle),
+    transparent 0deg 120deg,
+    color-mix(in srgb, var(--accent) 25%, transparent) 140deg,
+    color-mix(in srgb, var(--accent) 70%, transparent) 170deg,
+    var(--accent) 195deg,
+    color-mix(in srgb, var(--accent) 40%, transparent) 225deg,
+    transparent 260deg 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.4;
+  transition: opacity 0.25s ease;
+}
+
+.chat-input-aura:hover::before,
+.chat-input-aura:focus-within::before {
+  opacity: 0.95;
+  animation: chat-input-flow-rotate 3.5s linear infinite;
+}
+
+@keyframes chat-input-flow-rotate {
+  to {
+    --flow-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-input-aura:hover::before,
+  .chat-input-aura:focus-within::before {
+    animation: none;
+    opacity: 0.6;
+  }
+}
