@@ -1660,3 +1660,13 @@ span.token.table {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-3px); opacity: 1; }
 }
+
+/* Exit variant for popovers — runs after pi-pop-in when a menu closes */
+@keyframes pi-pop-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-4px) scale(0.98); }
+}
+
+.pi-pop-out {
+  animation: pi-pop-out 130ms ease-in forwards;
+}
