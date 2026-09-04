@@ -36,6 +36,7 @@ import {
   ConfigSplitView,
 } from "./SettingsUi";
 import { ProviderIcon } from "./ProviderIcon";
+import { ProviderOrderEditor } from "./ProviderOrderEditor";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1836,6 +1837,7 @@ export function ModelsConfig({ onClose, embedded = false }: { onClose: () => voi
   const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
   const [apiKeyProviders, setApiKeyProviders] = useState<ApiKeyProvider[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [orderingOpen, setOrderingOpen] = useState(false);
 
   const refreshAuthProviders = useCallback(() => {
     fetch("/api/auth/providers")
@@ -1867,6 +1869,11 @@ export function ModelsConfig({ onClose, embedded = false }: { onClose: () => voi
 
   useEffect(() => {
     if (selection) setLastSettingsSelection("models", JSON.stringify(selection));
+  }, [selection]);
+
+  // Leaving the config tree (any selection change) exits the ordering editor.
+  useEffect(() => {
+    setOrderingOpen(false);
   }, [selection]);
 
   const addCustomProvider = useCallback(() => {
@@ -1980,6 +1987,22 @@ export function ModelsConfig({ onClose, embedded = false }: { onClose: () => voi
   const activeOAuth = oauthProviders.filter((p) => p.loggedIn);
   const activeApiKey = apiKeyProviders.filter((p) => p.configured);
 
+  // Providers the chat model selector can group by: configured custom
+  // providers plus active auth/API-key providers (deduped, stable order).
+  const orderableProviders: string[] = (() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const push = (name: string) => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      out.push(name);
+    };
+    for (const [name] of providers) push(name);
+    for (const p of oauthProviders) if (p.loggedIn) push(p.id);
+    for (const p of apiKeyProviders) if (p.configured) push(p.id);
+    return out;
+  })();
+
   // Resolve current detail
   const detailContent = (() => {
     if (!selection) return null;
@@ -2033,6 +2056,17 @@ export function ModelsConfig({ onClose, embedded = false }: { onClose: () => voi
           {/* Left: tree */}
           <ConfigSidebar>
             <ConfigSidebarList>
+              {/* Provider group order in the chat model selector */}
+              <ConfigSidebarItem
+                active={orderingOpen}
+                onClick={() => setOrderingOpen((current) => !current)}
+                title={t("i18n.providerGroupOrder")}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: "var(--text-dim)", flexShrink: 0 }}>
+                  <path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0-4-4m4 4 4-4" />
+                </svg>
+                <ConfigSidebarText className="is-grow">{t("i18n.providerGroupOrder")}</ConfigSidebarText>
+              </ConfigSidebarItem>
               {/* Active OAuth subscriptions */}
               {activeOAuth.map((p) => {
                 const isSelected = selection?.type === "oauth" && selection.providerId === p.id;
@@ -2132,7 +2166,11 @@ export function ModelsConfig({ onClose, embedded = false }: { onClose: () => voi
           {/* Right: detail */}
           <ConfigDetail>
             <ConfigDetailStack className="is-fill">
-              {loading ? null : detailContent ?? (
+              {loading ? null : orderingOpen ? (
+                <div style={{ padding: "2px 4px" }}>
+                  <ProviderOrderEditor providers={orderableProviders} />
+                </div>
+              ) : detailContent ?? (
                 <ConfigEmptyState>{t("i18n.selectProviderModel")}</ConfigEmptyState>
               )}
             </ConfigDetailStack>

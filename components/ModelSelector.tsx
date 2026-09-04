@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import {
+  getPinnedModels,
+  modelPinKey,
+  setPinnedModels,
+  toPinKeySet,
+  togglePinnedModel,
+  type PinnedModel,
+} from "@/lib/model-pin-preference";
+import { getProviderOrder, PROVIDER_ORDER_CHANGE_EVENT } from "@/lib/provider-order-preference";
 
 export interface ModelSelectorOption {
   provider: string;
@@ -45,6 +54,49 @@ export function filterModelOptions(options: ModelSelectorOption[], query: string
   ));
 }
 
+/**
+ * Splits options into pinned (kept in pin order, i.e. oldest pin first) and
+ * unpinned (kept in the caller's order). Models listed as pinned but absent
+ * from `options` (removed/disabled upstream) are dropped silently.
+ */
+export function partitionPinnedModelOptions(
+  options: ModelSelectorOption[],
+  pinnedModels: readonly PinnedModel[],
+): { pinned: ModelSelectorOption[]; rest: ModelSelectorOption[] } {
+  const pinnedKeys = toPinKeySet(pinnedModels);
+  const byKey = new Map(options.map((option) => [modelPinKey(option.provider, option.modelId), option]));
+  const pinned: ModelSelectorOption[] = [];
+  for (const entry of pinnedModels) {
+    const option = byKey.get(modelPinKey(entry.provider, entry.modelId));
+    if (option) pinned.push(option);
+  }
+  const rest = options.filter((option) => !pinnedKeys.has(modelPinKey(option.provider, option.modelId)));
+  return { pinned, rest };
+}
+
+export interface ProviderGroup {
+  provider: string;
+  options: ModelSelectorOption[];
+}
+
+/**
+ * Orders provider groups: providers listed in `preferred` come first in that
+ * order, then the remaining groups keep their original relative order.
+ * Stable — never reorders groups the preference does not mention.
+ */
+export function orderProviderGroups(groups: readonly ProviderGroup[], preferred: readonly string[]): ProviderGroup[] {
+  if (preferred.length === 0) return [...groups];
+  const rank = new Map(preferred.map((provider, index) => [provider, index]));
+  return [...groups].sort((a, b) => {
+    const rankA = rank.get(a.provider);
+    const rankB = rank.get(b.provider);
+    if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
+    if (rankA !== undefined) return -1;
+    if (rankB !== undefined) return 1;
+    return 0;
+  });
+}
+
 export function ModelSelector({
   options,
   value,
@@ -70,13 +122,48 @@ export function ModelSelector({
   const sortedOptions = useMemo(() => [...options].sort(compareModelOptions), [options]);
   const filteredOptions = filterModelOptions(sortedOptions, filter);
   const showFilter = sortedOptions.length > MODEL_FILTER_THRESHOLD;
+  const [pinnedModels, setPinnedModelsState] = useState<PinnedModel[]>([]);
+  const [providerOrder, setProviderOrderState] = useState<string[]>([]);
+
+  // Pins and provider order live in the browser; load after mount so
+  // SSR/hydration stays stable.
+  useEffect(() => {
+    setPinnedModelsState(getPinnedModels());
+    setProviderOrderState(getProviderOrder());
+  }, []);
+
+  // Provider order is edited in Settings (Models config), which can stay open
+  // on the same page — resync on the broadcast event and on cross-tab writes.
+  useEffect(() => {
+    const syncProviderOrder = () => setProviderOrderState(getProviderOrder());
+    window.addEventListener(PROVIDER_ORDER_CHANGE_EVENT, syncProviderOrder);
+    window.addEventListener("storage", syncProviderOrder);
+    return () => {
+      window.removeEventListener(PROVIDER_ORDER_CHANGE_EVENT, syncProviderOrder);
+      window.removeEventListener("storage", syncProviderOrder);
+    };
+  }, []);
+
+  const { pinned: pinnedOptions, rest: restOptions } = useMemo(
+    () => partitionPinnedModelOptions(filteredOptions, pinnedModels),
+    [filteredOptions, pinnedModels],
+  );
   const modelsByProvider: { provider: string; options: ModelSelectorOption[] }[] = [];
 
-  for (const option of filteredOptions) {
+  for (const option of restOptions) {
     const group = modelsByProvider.find((item) => item.provider === option.provider);
     if (group) group.options.push(option);
     else modelsByProvider.push({ provider: option.provider, options: [option] });
   }
+
+  const noResults = pinnedOptions.length === 0 && modelsByProvider.length === 0;
+  const visibleGroups = orderProviderGroups(modelsByProvider, providerOrder);
+
+  const togglePin = useCallback((option: ModelSelectorOption) => {
+    const next = togglePinnedModel(getPinnedModels(), option.provider, option.modelId);
+    setPinnedModels(next);
+    setPinnedModelsState(next);
+  }, []);
 
   const currentName = selectedLabel ?? (value
     ? sortedOptions.find((option) => option.modelId === value.modelId && option.provider === value.provider)?.name ?? value.modelId
@@ -227,6 +314,13 @@ export function ModelSelector({
         const horizontalPosition: CSSProperties = isMobile
           ? { left: 8, right: 8, maxWidth: "calc(100vw - 16px)" }
           : { left: anchorRect.left, width: "max-content", minWidth: anchorRect.width, maxWidth: Math.max(anchorRect.width, viewportWidth - anchorRect.left - 8) };
+        const groupHeaderStyle: CSSProperties = {
+          padding: "6px 12px 4px",
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: 0,
+          textTransform: "uppercase",
+        };
 
         return (
           <div
@@ -282,23 +376,42 @@ export function ModelSelector({
                   onClear();
                 }} />
               )}
-              {modelsByProvider.length === 0 ? (
+              {pinnedOptions.length > 0 && (
+                <div>
+                  <div style={{ ...groupHeaderStyle, borderTop: onClear && !value && !filter.trim() ? "1px solid var(--border)" : "none", color: "var(--accent)" }}>
+                    {t("chat.pinnedModels")}
+                  </div>
+                  {pinnedOptions.map((option) => (
+                    <PinnableModelOption
+                      key={`pin:${option.provider}:${option.modelId}`}
+                      active={option.modelId === value?.modelId && option.provider === value?.provider}
+                      label={option.name}
+                      pinned
+                      onSelect={() => choose(option)}
+                      onTogglePin={() => togglePin(option)}
+                    />
+                  ))}
+                </div>
+              )}
+              {noResults ? (
                 <div style={{ padding: "8px 12px", color: "var(--text-dim)", fontSize: 12, whiteSpace: "nowrap" }}>
                   {filter.trim() ? t("chat.noMatchingModels") : "No available models"}
                 </div>
-              ) : modelsByProvider.map((group, index) => (
-                <div key={group.provider}>
-                  {modelsByProvider.length > 1 && (
-                    <div style={{ padding: "6px 12px 4px", borderTop: index > 0 || onClear ? "1px solid var(--border)" : "none", color: "var(--text-dim)", fontSize: 10, fontWeight: 600, letterSpacing: 0, textTransform: "uppercase" }}>
+              ) : visibleGroups.map((group, index) => (
+                <div key={group.provider} style={pinnedOptions.length > 0 && visibleGroups.length === 1 ? { borderTop: "1px solid var(--border)" } : undefined}>
+                  {visibleGroups.length > 1 && (
+                    <div style={{ ...groupHeaderStyle, borderTop: index > 0 || onClear || pinnedOptions.length > 0 ? "1px solid var(--border)" : "none", color: "var(--text-dim)" }}>
                       {group.provider}
                     </div>
                   )}
                   {group.options.map((option) => (
-                    <ModelOptionButton
+                    <PinnableModelOption
                       key={`${option.provider}:${option.modelId}`}
                       active={option.modelId === value?.modelId && option.provider === value?.provider}
                       label={option.name}
-                      onClick={() => choose(option)}
+                      pinned={false}
+                      onSelect={() => choose(option)}
+                      onTogglePin={() => togglePin(option)}
                     />
                   ))}
                 </div>
@@ -327,5 +440,54 @@ function ModelOptionButton({ active, label, onClick }: { active: boolean; label:
         : <span style={{ width: 10, flexShrink: 0 }} />}
       <span title={label} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
     </button>
+  );
+}
+
+function PinnableModelOption({ active, label, pinned, onSelect, onTogglePin }: {
+  active: boolean;
+  label: string;
+  pinned: boolean;
+  onSelect: () => void;
+  onTogglePin: () => void;
+}) {
+  const { t } = useI18n();
+  const [hover, setHover] = useState(false);
+  const pinColor = pinned ? "var(--accent)" : hover ? "var(--text-muted)" : "var(--text-dim)";
+  return (
+    <div
+      role="option"
+      aria-selected={active}
+      style={{ display: "flex", alignItems: "center", width: "100%", background: active ? "var(--bg-selected)" : hover ? "var(--bg-hover)" : "none", transition: "background 0.12s" }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, padding: "7px 0 7px 12px", border: "none", background: "none", color: active ? "var(--text)" : "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: active ? 600 : 400, textAlign: "left", whiteSpace: "nowrap" }}
+      >
+        {active
+          ? <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }} aria-hidden="true"><polyline points="1.5 5 4 7.5 8.5 2.5" /></svg>
+          : <span style={{ width: 10, flexShrink: 0 }} />}
+        <span title={label} style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+      </button>
+      <button
+        type="button"
+        title={pinned ? t("chat.unpinModel") : t("chat.pinModel")}
+        aria-label={pinned ? t("chat.unpinModel") : t("chat.pinModel")}
+        aria-pressed={pinned}
+        onClick={(event: ReactMouseEvent<HTMLButtonElement>) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onTogglePin();
+        }}
+        style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 28, alignSelf: "stretch", padding: 0, border: "none", background: "none", color: pinColor, cursor: "pointer", opacity: pinned ? 1 : hover ? 1 : 0.25, transition: "opacity 0.12s, color 0.12s" }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 17v5" />
+          <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z" />
+        </svg>
+      </button>
+    </div>
   );
 }

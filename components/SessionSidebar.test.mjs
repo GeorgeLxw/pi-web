@@ -95,7 +95,10 @@ test("does not expose disk-backed actions for transient sessions", () => {
 });
 
 test("hides subagent rows and aggregates their state into the main session row", () => {
-  assert.match(source, /const sessionFamilies = listSessionFamilies\(filteredSessions\)/);
+  // Family building happens after both project scoping and keyword search, so
+  // a search query really hides sessions (and their subagent families).
+  assert.match(source, /const sessionFamilies = listSessionFamilies\(searchedSessions\)/);
+  assert.match(source, /filteredSessions\.filter\(\(session\) => matchesSessionQuery\(session, sessionQuery\)\)/);
   assert.match(source, /familySessions\.some\(\(session\) => session\.id === selectedSessionId\)/);
   assert.match(source, /familySessions\.some\(\(session\) => runningSessionIds\.has\(session\.id\)\)/);
   assert.doesNotMatch(source, /function SessionTreeItem/);
