@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 
+/**
+ * Online state. Starts `true` on both server and the client's first paint so
+ * hydration never sees a conditional (the offline banner) that differs
+ * between the two; the real value is applied right after mount via effect.
+ */
 export function useOnline(): boolean {
-  const [online, setOnline] = useState<boolean>(
-    () => typeof navigator === "undefined" || navigator.onLine,
-  );
+  const [online, setOnline] = useState(true);
   useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => setOnline(false);
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
+    const sync = () => setOnline(navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
     return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
     };
   }, []);
   return online;
