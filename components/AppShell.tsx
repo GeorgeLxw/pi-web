@@ -54,6 +54,7 @@ import type { SessionStatsInfo } from "@/lib/pi-types";
 import type { FileViewerState } from "@/lib/file-viewer-state";
 import type { ToolEntry } from "@/lib/tool-presets";
 import { getSessionFamily } from "@/lib/session-family";
+import { runViewTransition } from "@/lib/run-view-transition";
 import { getLastSettingsSection, type SettingsSection } from "@/lib/settings-navigation";
 
 type SessionCopyField = "file" | "id" | "projectDir" | "gitBranch" | "gitWorktree";
@@ -2368,7 +2369,7 @@ export function AppShell() {
             <TabBar
               tabs={fileTabs}
               activeTabId={activeFileTabId ?? ""}
-              onSelectTab={setActiveFileTabId}
+              onSelectTab={(id) => runViewTransition(() => setActiveFileTabId(id))}
               onCloseTab={handleCloseFileTab}
             />
           </div>
