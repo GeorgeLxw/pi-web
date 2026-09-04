@@ -390,6 +390,8 @@ export const zhTWLocale: LocalePlugin = {
     "i18n.providerGroupOrder": "聊天分組順序",
     "i18n.providerGroupOrderDescription": "預設按 Provider 名稱字母序排列;拖曳即可自訂順序,儲存後聊天模型下拉會依相同順序顯示。",
     "i18n.providerGroupOrderReset": "恢復預設順序",
+    "i18n.providerOrderMoveUp": "上移",
+    "i18n.providerOrderMoveDown": "下移",
     "i18n.dragToReorder": "拖曳排序",
     "i18n.visibleInPrompt": "會顯示在模型提示詞中，點選以停用",
     "i18n.hiddenFromPrompt": "不會顯示在模型提示詞中，點選以啟用",

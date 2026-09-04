@@ -90,6 +90,7 @@ export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
       cursor: "grab",
       opacity: draggingProvider === provider ? 0.45 : 1,
       boxSizing: "border-box",
+      touchAction: "pan-y", // keep vertical scrolling on touch; reorder via buttons there
     };
   };
 
@@ -103,7 +104,7 @@ export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
           <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--text-dim)" }}>
             {t("i18n.noProviders")}
           </div>
-        ) : order.map((provider) => (
+        ) : order.map((provider, index) => (
           <div
             key={provider}
             role="listitem"
@@ -151,8 +152,48 @@ export function ProviderOrderEditor({ providers }: ProviderOrderEditorProps) {
               {provider}
             </span>
             {order.length > 1 && (
-              <span style={{ fontSize: 10, color: "var(--text-dim)", flexShrink: 0 }}>
-                {order.indexOf(provider) + 1}
+              <span className="provider-order-move">
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  aria-label={t("i18n.providerOrderMoveUp")}
+                  title={t("i18n.providerOrderMoveUp")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    commitOrder(reorderList(order, index, index - 1));
+                  }}
+                  style={{
+                    width: 22, height: 22, padding: 0, border: "none", background: "none",
+                    color: index === 0 ? "var(--text-dim)" : "var(--text-muted)",
+                    cursor: index === 0 ? "default" : "pointer", opacity: index === 0 ? 0.35 : 1,
+                    borderRadius: 4, flexShrink: 0,
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
+                </button>
+                <button
+                  type="button"
+                  disabled={index === order.length - 1}
+                  aria-label={t("i18n.providerOrderMoveDown")}
+                  title={t("i18n.providerOrderMoveDown")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    commitOrder(reorderList(order, index, index + 1));
+                  }}
+                  style={{
+                    width: 22, height: 22, padding: 0, border: "none", background: "none",
+                    color: index === order.length - 1 ? "var(--text-dim)" : "var(--text-muted)",
+                    cursor: index === order.length - 1 ? "default" : "pointer", opacity: index === order.length - 1 ? 0.35 : 1,
+                    borderRadius: 4, flexShrink: 0,
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+              </span>
+            )}
+            {order.length > 1 && (
+              <span style={{ fontSize: 10, color: "var(--text-dim)", flexShrink: 0, minWidth: 12, textAlign: "right" }}>
+                {index + 1}
               </span>
             )}
           </div>

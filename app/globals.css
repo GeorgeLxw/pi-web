@@ -1570,3 +1570,28 @@ span.token.table {
     animation: none;
   }
 }
+
+/* ── Overscroll: keep page-level gestures (pull-to-refresh, back-swipe) from
+   hijacking app scrolling ─────────────────────────────────────────────────── */
+@supports (overscroll-behavior-y: none) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Provider order editor: row-drag is a mouse affordance; coarse pointers get
+   per-row move buttons instead (keep the row itself touch-scrollable). */
+.provider-order-move {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .provider-order-move {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+}
