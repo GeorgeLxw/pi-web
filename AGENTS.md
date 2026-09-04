@@ -6,6 +6,8 @@
 npm run dev   # port 30141
 ```
 
+> **Port convention**: 30141 is the user's own Pi Web instance (global install). For a separate dev/test instance of this checkout, always use port **30142**: `node_modules/.bin/next dev -H 127.0.0.1 -p 30142` (independent `.next`, no lock conflict since the 30141 process is a different checkout).
+
 Typecheck: `node_modules/.bin/tsc --noEmit`  
 Lint: `npm run lint`  
 **Never run `next build` during dev** — pollutes `.next/` and breaks `npm run dev`.
