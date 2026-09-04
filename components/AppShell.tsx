@@ -55,6 +55,7 @@ import type { FileViewerState } from "@/lib/file-viewer-state";
 import type { ToolEntry } from "@/lib/tool-presets";
 import { getSessionFamily } from "@/lib/session-family";
 import { runViewTransition } from "@/lib/run-view-transition";
+import { runPaneFade } from "@/lib/pane-fade";
 import { getLastSettingsSection, type SettingsSection } from "@/lib/settings-navigation";
 
 type SessionCopyField = "file" | "id" | "projectDir" | "gitBranch" | "gitWorktree";
@@ -208,6 +209,7 @@ export function AppShell() {
     reclampRightPanelWidth();
   }, [reclampRightPanelWidth, reclampSidebarWidth, rightPanelOpen]);
   const chatInputRef = useRef<ChatInputHandle | null>(null);
+  const chatPaneRef = useRef<HTMLDivElement | null>(null);
   const topBarRef = useRef<HTMLDivElement>(null);
   const mobileToolbarRef = useRef<HTMLDivElement>(null);
   const languageBtnRef = useRef<HTMLButtonElement>(null);
@@ -615,20 +617,21 @@ export function AppShell() {
   }, [activeCwd, invalidateWorkspaceRestore, newSessionCwd, router, selectedSession, restoreWorkspaceContext]);
 
   const handleSelectSession = useCallback((session: SessionInfo, isRestore = false) => {
-    invalidateWorkspaceRestore();
-    activeNewSessionDraftKeyRef.current = null;
-    // Re-clicking the already-open session must not remount the chat and
-    // re-run the full load/positioning cycle. Only skip when the effective
-    // cwd context already matches — otherwise a pending cwd move still needs
-    // the full re-select flow.
-    if (!isRestore && selectedSession) {
-      const sameProject =
-        workspaceKeyOf(selectedSession) === workspaceKeyOf(session);
-      if (selectedSession.id === session.id && sameProject) {
-        if (isMobile) setSidebarOpen(false);
-        return;
+    runPaneFade(chatPaneRef.current, () => {
+      invalidateWorkspaceRestore();
+      activeNewSessionDraftKeyRef.current = null;
+      // Re-clicking the already-open session must not remount the chat and
+      // re-run the full load/positioning cycle. Only skip when the effective
+      // cwd context already matches — otherwise a pending cwd move still needs
+      // the full re-select flow.
+      if (!isRestore && selectedSession) {
+        const sameProject =
+          workspaceKeyOf(selectedSession) === workspaceKeyOf(session);
+        if (selectedSession.id === session.id && sameProject) {
+          if (isMobile) setSidebarOpen(false);
+          return;
+        }
       }
-    }
     setNewSessionCwd(null);
     setSelectedSession(session);
     setSessionKey((k) => k + 1);
@@ -651,6 +654,7 @@ export function AppShell() {
     if (!isRestore) {
       router.replace(`?session=${encodeURIComponent(session.id)}`, { scroll: false });
     }
+    });
   }, [invalidateWorkspaceRestore, router, isMobile, selectedSession]);
 
   const handleNewSession = useCallback((sessionId: string, cwd: string) => {
@@ -2255,7 +2259,7 @@ export function AppShell() {
         </div>
 
         {/* Chat content */}
-        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <div ref={chatPaneRef} style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           {showChat ? (
             <ChatWindow
               key={sessionKey}

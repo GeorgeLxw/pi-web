@@ -1670,3 +1670,9 @@ span.token.table {
 .pi-pop-out {
   animation: pi-pop-out 130ms ease-in forwards;
 }
+
+/* View-transition root crossfade tuned shorter for tab/theme switches */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+}
