@@ -16,6 +16,7 @@ import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAg
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { getWaitingHints, pickWaitingHint } from "@/lib/waiting-hints";
+import { consumeComposerFlySource, runSendMorphFly } from "@/lib/send-morph";
 import type { SessionStatsInfo } from "@/lib/pi-types";
 import type { AppUpdateResponse } from "@/lib/api-types";
 import type { ToolEntry } from "@/lib/tool-presets";
@@ -375,6 +376,18 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [historyCursor, hasEarlierMessages, session, activeLeafId, loadContext, sessionIdRef, scrollContainerRef]);
+
+  // Send morph: right after a composer send, the newest user row mounts with
+  // the same text — fly the composer text onto that bubble, then fade out so
+  // the real bubble underneath carries the hand-off.
+  useLayoutEffect(() => {
+    const source = consumeComposerFlySource();
+    if (!source) return;
+    const row = lastUserMsgRef.current;
+    if (!row) return;
+    const bubble = row.querySelector(".markdown-user-message") as HTMLElement | null;
+    runSendMorphFly(source, (bubble ?? row).getBoundingClientRect());
+  }, [messages, entryIds, lastUserMsgRef]);
 
   // Keep the rendered window at least as large as what's loaded, so prepended
   // (older) pages stay visible instead of being sliced off the top.
@@ -822,7 +835,7 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
                 );
                 if (!isVisible || options.attachRef === false || currentRefIdx === undefined) return view;
                 return (
-                  <div key={`${keyPrefix}-${idx}`} className="chat-message-row" ref={attachVisibleRef(idx, currentRefIdx)}>
+                  <div key={`${keyPrefix}-${idx}`} className={msg.role === "assistant" ? "chat-message-row is-assistant" : "chat-message-row"} ref={attachVisibleRef(idx, currentRefIdx)}>
                     {view}
                   </div>
                 );

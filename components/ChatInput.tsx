@@ -23,6 +23,7 @@ import {
   type AtQueryMatch, type FileIndexEntry,
 } from "@/lib/file-fuzzy";
 import { FolderIcon, getFileIcon } from "./FileIcons";
+import { captureComposerFlySource } from "@/lib/send-morph";
 import { getWaitingHints } from "@/lib/waiting-hints";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
@@ -844,6 +845,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     const builtinAllowed = !isStreaming || canRunBuiltinSlashCommandWhileStreaming(msg);
     if (builtinAllowed && await runBuiltinCommand(msg)) return;
     if (isStreaming) return;
+    // Capture where the message left the composer so ChatWindow can fly it
+    // into the bubble that appears in the list.
+    const textareaRect = textareaRef.current?.getBoundingClientRect();
+    if (textareaRect) {
+      captureComposerFlySource({
+        x: textareaRect.left,
+        y: textareaRect.top,
+        width: textareaRect.width,
+        height: textareaRect.height,
+        text: msg,
+      });
+    }
     clearInput();
     onSend(msg, attachedImages.length ? attachedImages : undefined);
   }, [value, attachedImages, isStreaming, runBuiltinCommand, onSend, clearInput, onAudioUnlock]);

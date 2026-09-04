@@ -1595,3 +1595,19 @@ span.token.table {
     flex-shrink: 0;
   }
 }
+
+/* Assistant replies land with a slightly longer, softer rise than user rows */
+@keyframes chat-message-in-assistant {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.chat-message-row.is-assistant {
+  animation: chat-message-in-assistant 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
