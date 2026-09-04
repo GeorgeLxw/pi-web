@@ -26,6 +26,7 @@ import { FolderIcon, getFileIcon } from "./FileIcons";
 import { captureComposerFlySource } from "@/lib/send-morph";
 import { getWaitingHints } from "@/lib/waiting-hints";
 import { usePresence } from "@/hooks/usePresence";
+import { hapticPulse } from "@/lib/haptics";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
 import type { ToolPreset } from "@/lib/tool-presets";
@@ -848,7 +849,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     const builtinAllowed = !isStreaming || canRunBuiltinSlashCommandWhileStreaming(msg);
     if (builtinAllowed && await runBuiltinCommand(msg)) return;
     if (isStreaming) return;
-    // Capture where the message left the composer so ChatWindow can fly it
+    hapticPulse(12);
     // into the bubble that appears in the list.
     const textareaRect = textareaRef.current?.getBoundingClientRect();
     if (textareaRect) {
@@ -2013,6 +2014,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                 : t("chat.messagePlaceholder")
             }
             rows={1}
+            enterKeyHint="send"
             style={{
               flex: 1,
               minWidth: 0,
@@ -2465,7 +2467,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             {isStreaming && (
               <button
                 className="pi-pressable"
-                onClick={onAbort}
+                onClick={() => { hapticPulse(8); onAbort(); }}
                  title={t("chat.stopAgent")}
                 style={{
                   display: "flex", alignItems: "center", gap: 6,

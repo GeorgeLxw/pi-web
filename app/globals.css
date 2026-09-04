@@ -1684,3 +1684,14 @@ span.token.table {
     opacity: 0;
   }
 }
+
+/* Touch icon hit targets: coarse pointers enlarge toolbar icons via --icon-hit */
+:root {
+  --icon-hit: 26px;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --icon-hit: 34px;
+  }
+}

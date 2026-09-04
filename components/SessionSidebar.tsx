@@ -63,7 +63,7 @@ function ToolbarIconButton({
       style={{
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center",
-        width: 26, height: 26, padding: 0, marginRight,
+        width: "var(--icon-hit, 26px)", height: "var(--icon-hit, 26px)", padding: 0, marginRight,
         background,
         border: "none",
         color,

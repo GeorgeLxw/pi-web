@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useTheme, type ThemePreference } from "@/hooks/useTheme";
 import { sendAgentCommand } from "@/lib/agent-client";
+import { isHapticsEnabled, setHapticsEnabled } from "@/lib/haptics";
 import type { ShellToolSettingsResponse } from "@/lib/api-types";
 import {
   setLastSettingsSection,
@@ -57,6 +58,7 @@ function GeneralSettings({ sessionId, onSessionReloaded }: Pick<Props, "sessionI
   const { locale, setLocale, supportedLocales, t } = useI18n();
   const { preference, setThemePreference } = useTheme();
   const [shellSettings, setShellSettings] = useState<ShellToolSettingsResponse | null>(null);
+  const [hapticsEnabled, setHapticsEnabledState] = useState(() => isHapticsEnabled());
   const [shellSaving, setShellSaving] = useState(false);
   const [shellError, setShellError] = useState<string | null>(null);
   const themeOptions: { id: ThemePreference; label: string }[] = [
@@ -145,6 +147,22 @@ function GeneralSettings({ sessionId, onSessionReloaded }: Pick<Props, "sessionI
           {shellError && <p role="alert" className="settings-general-error">{shellError}</p>}
         </section>
       )}
+
+      <section className="settings-general-section">
+        <h3 className="settings-general-heading">{t("settings.haptics")}</h3>
+        <p className="settings-general-description">{t("settings.hapticsDescription")}</p>
+        <div className="settings-shell-option">
+          <span>{t("settings.hapticsTitle")}</span>
+          <ConfigSwitch
+            checked={hapticsEnabled}
+            label={t("settings.haptics")}
+            onChange={(enabled) => {
+              setHapticsEnabledState(enabled);
+              setHapticsEnabled(enabled);
+            }}
+          />
+        </div>
+      </section>
 
       <section className="settings-general-section">
         <h3 className="settings-general-heading">{t("common.language")}</h3>
