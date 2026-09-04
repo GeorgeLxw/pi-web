@@ -87,8 +87,9 @@ function WaitingModelHints() {
   }, [hints]);
 
   return (
-    <span key={hint} className="hint-fade" style={{ display: "inline-block" }}>
-      {hint}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+      <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+      <span key={hint} className="hint-fade" style={{ display: "inline-block" }}>{hint}</span>
     </span>
   );
 }
@@ -636,8 +637,18 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-text-muted">
-         {t("chat.loadingSession")}
+      <div
+        aria-busy="true"
+        aria-label={t("chat.loadingSession")}
+        style={{ height: "100%", overflow: "hidden", padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12, boxSizing: "border-box" }}
+      >
+        <div className="chat-skeleton-line" style={{ width: "46%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "78%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "30%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "88%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "58%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "40%", height: 13 }} />
+        <div className="chat-skeleton-line" style={{ width: "70%", height: 13 }} />
       </div>
     );
   }

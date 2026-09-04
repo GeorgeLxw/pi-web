@@ -1625,3 +1625,38 @@ span.token.table {
     scroll-behavior: auto !important;
   }
 }
+
+/* Loading skeleton shimmer + bouncing typing dots */
+@keyframes chat-skeleton-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -20% 0; }
+}
+
+.chat-skeleton-line {
+  border-radius: 6px;
+  background: linear-gradient(100deg, var(--bg-panel) 30%, var(--bg-hover) 46%, var(--bg-panel) 62%);
+  background-size: 220% 100%;
+  animation: chat-skeleton-shimmer 1.2s ease infinite;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.typing-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
