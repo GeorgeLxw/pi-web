@@ -1611,3 +1611,17 @@ span.token.table {
 .chat-message-row.is-assistant {
   animation: chat-message-in-assistant 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
+
+/* ── Motion discipline: one global reduced-motion override ───────────────────
+   Users who request reduced motion get near-instant animations everywhere,
+   even places that forgot their own media query. Pure presentation override. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
