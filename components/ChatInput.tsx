@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect, useLayoutEffect, useImperativeHandle, forwardRef, KeyboardEvent } from "react";
+import React, { useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo, useImperativeHandle, forwardRef, KeyboardEvent } from "react";
 import type { BuiltinSlashCommandResult, CompactResultInfo, QueuedMessages, SlashCommandInfo } from "@/hooks/useAgentSession";
 import type { SkillsResponse } from "@/lib/api-types";
 import type { TextContent, UserMessage } from "@/lib/types";
@@ -23,6 +23,7 @@ import {
   type AtQueryMatch, type FileIndexEntry,
 } from "@/lib/file-fuzzy";
 import { FolderIcon, getFileIcon } from "./FileIcons";
+import { getWaitingHints } from "@/lib/waiting-hints";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useI18n } from "@/hooks/useI18n";
 import type { ToolPreset } from "@/lib/tool-presets";
@@ -463,8 +464,23 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   draftKey,
   cwd,
 }: Props, ref) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const isMobile = useIsMobile();
+  // While the agent runs and the composer is empty, rotate playful "still
+  // thinking" lines through the placeholder (same pool as the message hints).
+  const waitingHints = useMemo(() => getWaitingHints(locale), [locale]);
+  const [streamingHintIdx, setStreamingHintIdx] = useState(0);
+  const streamingHint = isStreaming && !(onSteer || onFollowUp)
+    ? waitingHints[streamingHintIdx % waitingHints.length]
+    : null;
+  useEffect(() => {
+    if (!isStreaming || onSteer || onFollowUp) return;
+    setStreamingHintIdx(Math.floor(Math.random() * waitingHints.length));
+    const timer = window.setInterval(() => {
+      setStreamingHintIdx((index) => (index + 1) % waitingHints.length);
+    }, 3400);
+    return () => window.clearInterval(timer);
+  }, [isStreaming, onSteer, onFollowUp, waitingHints]);
   const [value, setValue] = useState(() => (draftKey ? getDraft(draftKey)?.value ?? "" : ""));
   const [toolDropdownOpen, setToolDropdownOpen] = useState(false);
   const [thinkingDropdownOpen, setThinkingDropdownOpen] = useState(false);
@@ -1977,7 +1993,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             placeholder={
               isStreaming && (onSteer || onFollowUp)
                 ? t("chat.steerPlaceholder")
-                : isStreaming ? t("chat.agentPlaceholder")
+                : isStreaming ? (streamingHint ?? t("chat.agentPlaceholder"))
                 : t("chat.messagePlaceholder")
             }
             rows={1}
