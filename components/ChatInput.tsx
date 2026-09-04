@@ -236,8 +236,22 @@ const CLIENT_IMAGE_COMPRESSION_THRESHOLD_BYTES = 1024 * 1024;
 const CLIENT_MAX_IMAGE_SIDE = 1024;
 const CLIENT_JPEG_QUALITY = 0.85;
 
-export function shouldCompressImageFile(file: Pick<File, "size" | "type">): boolean {
-  return file.size > CLIENT_IMAGE_COMPRESSION_THRESHOLD_BYTES && file.type !== "image/gif";
+/** Mobile presets: compress sooner and smaller to save bandwidth on phones. */
+export const MOBILE_IMAGE_COMPRESSION_THRESHOLD_BYTES = 512 * 1024;
+export const MOBILE_MAX_IMAGE_SIDE = 768;
+export const MOBILE_JPEG_QUALITY = 0.7;
+
+export interface ImageCompressionOptions {
+  thresholdBytes?: number;
+  maxSide?: number;
+  quality?: number;
+}
+
+export function shouldCompressImageFile(
+  file: Pick<File, "size" | "type">,
+  thresholdBytes: number = CLIENT_IMAGE_COMPRESSION_THRESHOLD_BYTES,
+): boolean {
+  return file.size > thresholdBytes && file.type !== "image/gif";
 }
 
 function readImageFile(file: Blob, mimeType: string): Promise<{ data: string; mimeType: string }> {
@@ -256,15 +270,18 @@ function readImageFile(file: Blob, mimeType: string): Promise<{ data: string; mi
   });
 }
 
-export async function compressImageFile(file: File): Promise<{ data: string; mimeType: string }> {
+export async function compressImageFile(file: File, options: ImageCompressionOptions = {}): Promise<{ data: string; mimeType: string }> {
+  const thresholdBytes = options.thresholdBytes ?? CLIENT_IMAGE_COMPRESSION_THRESHOLD_BYTES;
+  const maxSide = options.maxSide ?? CLIENT_MAX_IMAGE_SIDE;
+  const quality = options.quality ?? CLIENT_JPEG_QUALITY;
   const original = () => readImageFile(file, file.type);
-  if (!shouldCompressImageFile(file) || typeof createImageBitmap !== "function") return original();
+  if (!shouldCompressImageFile(file, thresholdBytes) || typeof createImageBitmap !== "function") return original();
 
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return original();
 
   try {
-    const scale = Math.min(1, CLIENT_MAX_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
@@ -273,7 +290,7 @@ export async function compressImageFile(file: File): Promise<{ data: string; mim
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const data = canvas.toDataURL("image/jpeg", CLIENT_JPEG_QUALITY).split(",")[1];
+    const data = canvas.toDataURL("image/jpeg", quality).split(",")[1];
     return data && data.length < Math.ceil(file.size / 3) * 4
       ? { data, mimeType: "image/jpeg" }
       : original();
@@ -693,7 +710,16 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     try {
       const newImages = await Promise.all(
         imageFiles.map(async (file) => ({
-          ...await compressImageFile(file),
+          ...await compressImageFile(
+            file,
+            isMobile
+              ? {
+                  thresholdBytes: MOBILE_IMAGE_COMPRESSION_THRESHOLD_BYTES,
+                  maxSide: MOBILE_MAX_IMAGE_SIDE,
+                  quality: MOBILE_JPEG_QUALITY,
+                }
+              : undefined,
+          ),
           previewUrl: URL.createObjectURL(file),
         }))
       );
@@ -707,7 +733,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
     } finally {
       pendingImageCountRef.current -= imageFiles.length;
     }
-  }, []);
+  }, [isMobile]);
 
   const removeImage = useCallback((index: number) => {
     setAttachedImages((prev) => {
@@ -1399,10 +1425,11 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
 
   return (
     <div
+      className="chat-composer"
       style={{
         flexShrink: 0,
         background: "transparent",
-        padding: "0 16px 8px",
+        padding: isMobile ? "0 16px calc(10px + env(safe-area-inset-bottom))" : "0 16px 8px",
         paddingRight: isMobile ? 16 : 52, // desktop: 16px base + 36px for ChatMinimap alignment
       }}
     >
@@ -1963,7 +1990,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
               outline: "none",
               resize: "none",
               color: "var(--text)",
-              fontSize: 14,
+              fontSize: isMobile ? 16 : 14, // >=16px on mobile keeps iOS from zooming on focus
               lineHeight: 1.6,
               fontFamily: "inherit",
               minHeight: 24,

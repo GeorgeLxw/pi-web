@@ -1480,3 +1480,21 @@ span.token.table {
     opacity: 0.6;
   }
 }
+
+/* ── Mobile touch ergonomics ──────────────────────────────────────────────────
+   Coarse pointers (phones/tablets): kill double-tap zoom on controls, enlarge
+   composer hit targets to thumb-friendly heights, and honor iOS safe areas
+   (the composer already adds env(safe-area-inset-bottom) padding itself). */
+
+@media (pointer: coarse) {
+  .chat-composer button,
+  .chat-composer [role="button"] {
+    touch-action: manipulation;
+    min-height: 38px;
+  }
+
+  .chat-composer input,
+  .chat-composer textarea {
+    touch-action: manipulation;
+  }
+}
