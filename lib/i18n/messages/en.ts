@@ -165,6 +165,7 @@ export const enLocale: LocalePlugin = {
     "workspace.stepProject": "Select a project directory from the sidebar",
     "workspace.stepModels": "Open Settings at the bottom, then choose Models",
     "files.hidePanel": "Hide file panel",
+    "files.showMoreFiles": "Show more…",
     "files.showPanel": "Show file panel",
     "files.noneOpen": "No file open",
     "layout.resizeSidebar": "Resize sidebar",

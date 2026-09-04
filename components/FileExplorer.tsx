@@ -251,6 +251,8 @@ function TreeNode({
   const [loaded, setLoaded] = useState(node.loaded ?? false);
   const [loading, setLoading] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [showAllChildren, setShowAllChildren] = useState(false);
+  const TREE_NODE_RENDER_LIMIT = 500;
 
   const loadChildren = useCallback(async (force = false) => {
     if (loaded && !force) return;
@@ -433,7 +435,7 @@ function TreeNode({
       </div>
       {node.isDir && open && (
         <div>
-          {children.map((child) => (
+          {(showAllChildren ? children : children.slice(0, TREE_NODE_RENDER_LIMIT)).map((child) => (
             <TreeNode
               key={child.fullPath}
               node={child}
@@ -450,6 +452,25 @@ function TreeNode({
               t={t}
             />
           ))}
+          {!showAllChildren && children.length > TREE_NODE_RENDER_LIMIT && (
+            <button
+              type="button"
+              onClick={() => setShowAllChildren(true)}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "2px 0 2px " + (8 + (depth + 1) * 14 + 14) + "px",
+                border: "none",
+                background: "none",
+                color: "var(--text-muted)",
+                fontSize: 11,
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              {t("files.showMoreFiles")}
+            </button>
+          )}
           {children.length === 0 && loaded && (
             <div style={{ paddingLeft: 8 + (depth + 1) * 14, fontSize: 11, color: "var(--text-dim)", height: 22, display: "flex", alignItems: "center" }}>
               empty

@@ -165,6 +165,7 @@ export const zhCNLocale: LocalePlugin = {
     "workspace.stepProject": "从侧边栏选择项目目录",
     "workspace.stepModels": "打开底部的“设置”，然后选择“模型”",
     "files.hidePanel": "隐藏文件面板",
+    "files.showMoreFiles": "显示更多…",
     "files.showPanel": "显示文件面板",
     "files.noneOpen": "没有打开的文件",
     "layout.resizeSidebar": "调整侧边栏宽度",
