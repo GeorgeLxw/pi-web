@@ -19,6 +19,17 @@ export interface ComposerFlySource {
 
 let pending: { at: number; source: ComposerFlySource } | null = null;
 
+/** Tuning knobs for the send morph — tweak here after visual feedback. */
+export const SEND_MORPH_PARAMS = {
+  durationMs: 520,
+  liftPx: 10,
+  minScaleX: 0.2,
+  maxScaleX: 1.6,
+  minScaleY: 0.2,
+  maxScaleY: 1.4,
+  maxAgeMs: 900,
+} as const;
+
 function now(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
@@ -28,7 +39,7 @@ export function captureComposerFlySource(source: ComposerFlySource): void {
 }
 
 /** Latest capture, if fresh enough; consumed once so only one morph runs. */
-export function consumeComposerFlySource(maxAgeMs = 900): ComposerFlySource | null {
+export function consumeComposerFlySource(maxAgeMs = SEND_MORPH_PARAMS.maxAgeMs): ComposerFlySource | null {
   if (!pending) return null;
   if (now() - pending.at > maxAgeMs) {
     pending = null;
@@ -92,9 +103,9 @@ export function runSendMorphFly(source: ComposerFlySource, toRect: DOMRect): voi
   const toCenterY = toRect.y + toRect.height / 2;
   const dx = toCenterX - fromCenterX;
   const dy = toCenterY - fromCenterY;
-  // Final scale maps the composer-width pill onto the (usually wider) bubble.
-  const scaleX = Math.max(0.2, Math.min(1.6, toRect.width / Math.max(1, source.width)));
-  const scaleY = Math.max(0.2, Math.min(1.4, toRect.height / Math.max(1, source.height)));
+  const { durationMs, liftPx, minScaleX, maxScaleX, minScaleY, maxScaleY } = SEND_MORPH_PARAMS;
+  const scaleX = Math.max(minScaleX, Math.min(maxScaleX, toRect.width / Math.max(1, source.width)));
+  const scaleY = Math.max(minScaleY, Math.min(maxScaleY, toRect.height / Math.max(1, source.height)));
 
   const finish = () => {
     try {
@@ -114,7 +125,7 @@ export function runSendMorphFly(source: ComposerFlySource, toRect: DOMRect): voi
           offset: 0,
         },
         {
-          transform: `translate(${dx * 0.55}px, ${dy * 0.55 - 10}px) scale(1)`,
+          transform: `translate(${dx * 0.55}px, ${dy * 0.55 - liftPx}px) scale(1)`,
           opacity: 1,
           offset: 0.45,
         },
@@ -125,7 +136,7 @@ export function runSendMorphFly(source: ComposerFlySource, toRect: DOMRect): voi
           offset: 1,
         },
       ],
-      { duration: 520, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" },
+      { duration: durationMs, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" },
     ).addEventListener("finish", finish, { once: true });
   } catch {
     finish();
