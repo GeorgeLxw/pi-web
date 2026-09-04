@@ -2051,6 +2051,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
             </div>
           ) : (
             <button
+              className="pi-pressable"
               onClick={handleSend}
               disabled={!value.trim() && !attachedImages.length}
               style={{
@@ -2254,7 +2255,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   {(!isMobile || controlsMenuOpen) && <span style={{ whiteSpace: "nowrap" }}>{thinkingDisplayLabel}</span>}
                 </button>
                 {thinkingDropdownOpen && (
-                  <div style={{
+                  <div className="pi-pop" style={{
                     position: "absolute", bottom: "calc(100% + 6px)",
                     ...(isMobile ? { left: 0 } : { right: 0 }),
                     zIndex: 100, background: "var(--bg)", border: "1px solid var(--border)",
@@ -2340,7 +2341,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
                   {(!isMobile || controlsMenuOpen) && <span style={{ whiteSpace: "nowrap" }}>{toolPresetLabel}</span>}
                 </button>
                 {toolDropdownOpen && (
-                  <div style={{
+                  <div className="pi-pop" style={{
                     position: "absolute",
                     bottom: "calc(100% + 6px)",
                     right: isMobile ? undefined : 0,
@@ -2431,6 +2432,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
 
             {isStreaming && (
               <button
+                className="pi-pressable"
                 onClick={onAbort}
                  title={t("chat.stopAgent")}
                 style={{
