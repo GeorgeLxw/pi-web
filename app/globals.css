@@ -1676,3 +1676,11 @@ span.token.table {
 ::view-transition-new(root) {
   animation-duration: 200ms;
 }
+
+/* Tab closing: shrink + fade before removal (kept mounted by TabBar for 160ms) */
+@keyframes tab-collapse {
+  to {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}

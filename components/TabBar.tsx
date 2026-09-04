@@ -25,6 +25,20 @@ interface Props {
 export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
   const { t } = useI18n();
   const [hoveredClose, setHoveredClose] = useState<string | null>(null);
+  const [closingIds, setClosingIds] = useState<ReadonlySet<string>>(() => new Set());
+
+  const requestClose = (id: string) => {
+    if (closingIds.has(id)) return;
+    setClosingIds((prev) => new Set(prev).add(id));
+    window.setTimeout(() => {
+      setClosingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      onCloseTab(id);
+    }, 170);
+  };
 
   return (
     <div
@@ -50,7 +64,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               if (e.button !== 1) return;
               e.preventDefault();
               e.stopPropagation();
-              onCloseTab(tab.id);
+              requestClose(tab.id);
             }}
             style={{
               display: "flex",
@@ -69,6 +83,9 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               minWidth: 80,
               flexShrink: 0,
               userSelect: "none",
+              transformOrigin: "left center",
+              pointerEvents: closingIds.has(tab.id) ? "none" : "auto",
+              animation: closingIds.has(tab.id) ? "tab-collapse 160ms ease forwards" : undefined,
               transition: "background 0.1s, color 0.1s",
             }}
           >
@@ -87,7 +104,7 @@ export function TabBar({ tabs, activeTabId, onSelectTab, onCloseTab }: Props) {
               {tab.label}
             </span>
             <button
-              onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
+              onClick={(e) => { e.stopPropagation(); requestClose(tab.id); }}
               onMouseEnter={() => setHoveredClose(tab.id)}
               onMouseLeave={() => setHoveredClose(null)}
               style={{
