@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo, useRef, memo, type CSSProperties, type ReactNode } from "react";
 import type { SessionInfo } from "@/lib/types";
 import { listSessionFamilies } from "@/lib/session-family";
 import { loadExplorerOpen, saveExplorerOpen } from "@/lib/file-explorer-state";
@@ -1711,7 +1711,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
             ? family.root
             : { ...family.root, modified: family.latestModified };
           return (
-            <SessionItem
+            <SessionItemMemo
               key={family.root.id}
               session={displaySession}
               isSelected={familySessions.some((session) => session.id === selectedSessionId)}
@@ -2326,3 +2326,16 @@ function SessionItem({
     </div>
   );
 }
+
+// Memoize rows across the 2.5s running/unread poll: identical data rows skip
+// re-render entirely. Callback functions are intentionally excluded from the
+// comparison — they only depend on stable session ids / refetch helpers.
+const SessionItemMemo = memo(SessionItem, (prev, next) =>
+  prev.session === next.session
+  && prev.isSelected === next.isSelected
+  && prev.isRunning === next.isRunning
+  && prev.isUnread === next.isUnread
+  && prev.depth === next.depth
+  && prev.hasChildren === next.hasChildren
+  && prev.collapsed === next.collapsed,
+);
