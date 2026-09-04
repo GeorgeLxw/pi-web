@@ -14,12 +14,14 @@ import { BranchNavigator, hasSessionBranches } from "./BranchNavigator";
 import { SystemPromptPanel } from "./SystemPromptPanel";
 import { ToolDefinitionsPanel } from "./ToolDefinitionsPanel";
 import { AgentSessionPanel } from "./AgentSessionPanel";
+import { PwaInstallHint } from "./PwaInstallHint";
 import { useTheme } from "@/hooks/useTheme";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile, useIsNarrowMobile } from "@/hooks/useIsMobile";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
 import { useAudio } from "@/hooks/useAudio";
+import { useOnline } from "@/hooks/useOnline";
 import { copyText } from "@/lib/clipboard";
 import { getFileName } from "@/lib/file-paths";
 import { buildAtMentionText, buildFileAtMentionsText, buildFileLineMentionText } from "@/lib/file-fuzzy";
@@ -77,6 +79,7 @@ export function AppShell() {
   const themeLabelKey =
     preference === "light" ? "theme.light" : preference === "dark" ? "theme.dark" : "theme.auto";
   const { locale, setLocale, t: translate, supportedLocales } = useI18n();
+  const online = useOnline();
   const isMobile = useIsMobile();
   const isNarrowMobile = useIsNarrowMobile();
   useViewportHeight();
@@ -2260,6 +2263,11 @@ export function AppShell() {
 
         {/* Chat content */}
         <div ref={chatPaneRef} style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+          {!online && (
+            <div role="status" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 90, padding: "4px 10px", background: "#b45309", color: "#fff", fontSize: 11, textAlign: "center" }}>
+              {translate("chat.offline")}
+            </div>
+          )}
           {showChat ? (
             <ChatWindow
               key={sessionKey}
@@ -2432,6 +2440,7 @@ export function AppShell() {
         </div>
       </div>
     </div>
+    <PwaInstallHint />
     {settingsSection && (
       <SettingsPanel
         cwd={projectTrustCwd}

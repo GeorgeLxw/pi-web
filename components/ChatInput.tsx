@@ -845,6 +845,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput({
   const handleSend = useCallback(async () => {
     const msg = value.trim();
     if (!msg && !attachedImages.length) return;
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
     onAudioUnlock?.();
     const builtinAllowed = !isStreaming || canRunBuiltinSlashCommandWhileStreaming(msg);
     if (builtinAllowed && await runBuiltinCommand(msg)) return;
