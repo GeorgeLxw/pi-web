@@ -118,7 +118,7 @@ function GeneralSettings({ sessionId, onSessionReloaded }: Pick<Props, "sessionI
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                onClick={() => setThemePreference(option.id)}
+                onClick={(event) => setThemePreference(option.id, { x: event.clientX, y: event.clientY })}
                 className="settings-theme-option"
               >
                 <ThemeIcon preference={option.id} />

@@ -55,7 +55,7 @@ test("offers direct light, dark, and system theme selection", () => {
   for (const preference of ["light", "dark", "auto"]) {
     assert.match(panelSource, new RegExp(`id: "${preference}"`));
   }
-  assert.match(panelSource, /setThemePreference\(option\.id\)/);
+  assert.match(panelSource, /setThemePreference\(option\.id, \{ x: event\.clientX, y: event\.clientY \}\)/);
   assert.match(themeSource, /const setThemePreference = useCallback/);
 });
 
