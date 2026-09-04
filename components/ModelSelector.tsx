@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
@@ -158,6 +158,54 @@ export function ModelSelector({
 
   const noResults = pinnedOptions.length === 0 && modelsByProvider.length === 0;
   const visibleGroups = orderProviderGroups(modelsByProvider, providerOrder);
+
+  // FLIP: animate rows sliding to their new slots when pin/unpin reorders the
+  // open list. Positions are measured before and after the state commit.
+  const rowListRef = useRef<HTMLDivElement | null>(null);
+  const prevRowRectsRef = useRef<Map<string, number> | null>(null);
+  useLayoutEffect(() => {
+    if (!open) {
+      prevRowRectsRef.current = null;
+      return;
+    }
+    const list = rowListRef.current;
+    if (!list) return;
+    const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-flip-key]"));
+    const rects = new Map<string, number>();
+    for (const row of rows) {
+      const key = row.dataset.flipKey;
+      if (key) rects.set(key, row.getBoundingClientRect().top);
+    }
+    const previous = prevRowRectsRef.current;
+    if (previous && previous.size > 0) {
+      const moving = new Map<string, number>();
+      rects.forEach((top, key) => {
+        const before = previous.get(key);
+        if (before !== undefined && Math.abs(before - top) > 1) moving.set(key, before - top);
+      });
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+      if (moving.size > 0 && !reduceMotion) {
+        for (const row of rows) {
+          const delta = row.dataset.flipKey ? moving.get(row.dataset.flipKey) : undefined;
+          if (delta !== undefined) {
+            row.style.transition = "none";
+            row.style.transform = `translateY(${delta}px)`;
+          }
+        }
+        void list.offsetHeight; // force reflow so the start position applies
+        requestAnimationFrame(() => {
+          for (const row of rows) {
+            const key = row.dataset.flipKey;
+            if (key && moving.has(key)) {
+              row.style.transition = "transform 160ms ease";
+              row.style.transform = "";
+            }
+          }
+        });
+      }
+    }
+    prevRowRectsRef.current = rects;
+  }, [open, pinnedModels]);
 
   const togglePin = useCallback((option: ModelSelectorOption) => {
     const next = togglePinnedModel(getPinnedModels(), option.provider, option.modelId);
@@ -368,7 +416,7 @@ export function ModelSelector({
                 />
               </div>
             )}
-            <div style={{ minHeight: 0, overflowY: "auto" }}>
+            <div ref={rowListRef} style={{ minHeight: 0, overflowY: "auto" }}>
               {onClear && !filter.trim() && (
                 <ModelOptionButton active={!value} label={emptyLabel ?? "Default"} onClick={() => {
                   setOpen(false);
@@ -384,6 +432,7 @@ export function ModelSelector({
                   {pinnedOptions.map((option) => (
                     <PinnableModelOption
                       key={`pin:${option.provider}:${option.modelId}`}
+                      flipKey={`${option.provider}::${option.modelId}`}
                       active={option.modelId === value?.modelId && option.provider === value?.provider}
                       label={option.name}
                       pinned
@@ -407,6 +456,7 @@ export function ModelSelector({
                   {group.options.map((option) => (
                     <PinnableModelOption
                       key={`${option.provider}:${option.modelId}`}
+                      flipKey={`${option.provider}::${option.modelId}`}
                       active={option.modelId === value?.modelId && option.provider === value?.provider}
                       label={option.name}
                       pinned={false}
@@ -443,10 +493,11 @@ function ModelOptionButton({ active, label, onClick }: { active: boolean; label:
   );
 }
 
-function PinnableModelOption({ active, label, pinned, onSelect, onTogglePin }: {
+function PinnableModelOption({ active, label, pinned, flipKey, onSelect, onTogglePin }: {
   active: boolean;
   label: string;
   pinned: boolean;
+  flipKey?: string;
   onSelect: () => void;
   onTogglePin: () => void;
 }) {
@@ -457,6 +508,7 @@ function PinnableModelOption({ active, label, pinned, onSelect, onTogglePin }: {
     <div
       role="option"
       aria-selected={active}
+      data-flip-key={flipKey}
       style={{ display: "flex", alignItems: "center", width: "100%", background: active ? "var(--bg-selected)" : hover ? "var(--bg-hover)" : "none", transition: "background 0.12s" }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
