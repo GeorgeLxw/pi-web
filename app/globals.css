@@ -1548,3 +1548,25 @@ span.token.table {
     transition: none;
   }
 }
+
+/* Waiting-hint rotation: soft fade between playful "model is thinking" lines */
+@keyframes hint-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hint-fade {
+  animation: hint-fade-in 420ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-fade {
+    animation: none;
+  }
+}

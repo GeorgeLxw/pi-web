@@ -15,6 +15,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAgentSession, type AgentPhase, type NoticeItem } from "@/hooks/useAgentSession";
 import { useDragDrop } from "@/hooks/useDragDrop";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { getWaitingHints, pickWaitingHint } from "@/lib/waiting-hints";
 import type { SessionStatsInfo } from "@/lib/pi-types";
 import type { AppUpdateResponse } from "@/lib/api-types";
 import type { ToolEntry } from "@/lib/tool-presets";
@@ -69,6 +70,26 @@ function phaseLabel(phase: AgentPhase, t: (key: string, params?: Record<string, 
   if (phase?.kind === "waiting_model") return t("chat.waitingModel");
   if (phase?.kind === "running_command") return t("chat.runningCommand");
   return null;
+}
+
+/** Playful rotating lines while the model thinks and nothing has streamed yet. */
+function WaitingModelHints() {
+  const { locale } = useI18n();
+  const hints = getWaitingHints(locale);
+  const [hint, setHint] = useState(() => pickWaitingHint(hints));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setHint((current) => pickWaitingHint(hints, current));
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [hints]);
+
+  return (
+    <span key={hint} className="hint-fade" style={{ display: "inline-block" }}>
+      {hint}
+    </span>
+  );
 }
 
 const CHAT_MINIMAP_WIDTH = 36;
@@ -921,7 +942,9 @@ export function ChatWindow({ session, sessionRunning, newSessionCwd, newSessionD
 
             {agentRunning && !hasStreamingContent && agentPhase && (
               <div className="break-words py-2 text-[13px] text-text-muted">
-                <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>
+                {agentPhase.kind === "waiting_model"
+                  ? <WaitingModelHints />
+                  : <span className="animate-[pulse_1.5s_infinite]">{phaseLabel(agentPhase, t)}</span>}
               </div>
             )}
 
